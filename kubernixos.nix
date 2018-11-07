@@ -1,9 +1,5 @@
  { packages ? <nixpkgs>, modules ? [] }:
 let
-  option = with pkgs.lib; mkOption {
-    type = types.listOf types.attrs;
-  };
-
   pkgs = if builtins.isAttrs packages then packages else (import packages {});
 
   merge = item: pkgs.lib.recursiveUpdate item {
@@ -20,7 +16,7 @@ in
     kind = "List";
     items = map merge ((import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
      inherit pkgs;
-     modules = modules ++ [ ({ options.kubernixos.manifests = option; }) ];
+     modules = modules ++ [ (import ./lib/module.nix) ];
     }).config.kubernixos.manifests);
  };
 }

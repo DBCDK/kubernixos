@@ -15,7 +15,8 @@ stdenv.mkDerivation {
   phases = [ "installPhase" ];
 
   installPhase = ''
-    mkdir -p $out/bin
+    mkdir -p $out/bin $out/lib
+    cp ${./lib}/*.nix $out/lib
     cp $src $out/bin/kubernixos
     chmod +x $out/bin/kubernixos
   '';
