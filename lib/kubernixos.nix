@@ -16,7 +16,7 @@ in
     kind = "List";
     items = map merge ((import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
      inherit pkgs;
-     modules = modules ++ [ (import ./lib/module.nix) ];
+     modules = modules ++ [ (import ./module.nix) ];
     }).config.kubernixos.manifests);
  };
 }
