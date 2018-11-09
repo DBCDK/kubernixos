@@ -34,8 +34,7 @@ in
   manifests = with pkgs;
   let
     cfg = (import "${toString path}/nixos/lib/eval-config.nix" {
-     inherit pkgs;
-     modules = modules ++ [ (import ./module.nix) ];
+     inherit pkgs modules;
     }).config.kubernixos;
   in
   {
