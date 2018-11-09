@@ -16,7 +16,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin $out/lib
-    cp ${./lib}/*.nix $out/lib
+    cp -r ${./lib}/* $out/lib
     substitute $src $out/bin/kubernixos --subst-var out
     chmod +x $out/bin/kubernixos
   '';
