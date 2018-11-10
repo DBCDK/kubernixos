@@ -8,8 +8,9 @@ stdenv.mkDerivation {
     set -euo pipefail
     PACKAGES="''${PACKAGES:-${path}}"
 
-    ${nix}/bin/nix eval --arg packages "$PACKAGES" --arg modules "$MODULES" -f @out@/lib/kubernixos.nix manifests --json | \
-      ${kubectl}/bin/kubectl apply -l reconciler=kubernixos --prune -f - $@
+    JSON=$(${nix}/bin/nix eval --arg packages "$PACKAGES" --arg modules "$MODULES" -f @out@/lib/kubernixos.nix manifests --json)
+    echo $JSON | \
+      ${kubectl}/bin/kubectl $@ -l reconciler=kubernixos --prune -f -
   '';
 
   phases = [ "installPhase" ];
