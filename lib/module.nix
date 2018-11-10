@@ -46,6 +46,15 @@ in
       description = "Kubernixos assertions to eval before generating k8s config.";
     };
 
+    server = mkOption {
+      type = str;
+      default = "";
+      description = ''
+        Address to the kubernetes apiserver.
+        If set, kubectl will be invoked with the `-s` flag set.
+      '';
+    };
+
   };
 
   config.kubernixos.assertions = lib.mapAttrsToList assertion cfg.manifests;

@@ -3,14 +3,18 @@
 stdenv.mkDerivation {
   name = "kubernixos";
 
+  # Rewrite this is a real programming language at some point
+  # Bash is.. Annoying
   src = with pkgs; writeText "kubernixos" ''
     #!${stdenv.shell}
     set -euo pipefail
     PACKAGES="''${PACKAGES:-${path}}"
 
-    JSON=$(${nix}/bin/nix eval --arg packages "$PACKAGES" --arg modules "$MODULES" -f @out@/lib/kubernixos.nix manifests --json)
-    echo $JSON | \
-      ${kubectl}/bin/kubectl $@ -l reconciler=kubernixos --prune -f -
+    TOP=$(${nix}/bin/nix eval --arg packages "$PACKAGES" --arg modules "$MODULES" -f @out@/lib/kubernixos.nix kubernixos --json)
+    SERVER=$(echo $TOP | ${jq}/bin/jq -rMc '.config.server')
+    MANIFESTS=$(echo $TOP | ${jq}/bin/jq -Mc '.manifests')
+    echo $MANIFESTS | \
+      ${kubectl}/bin/kubectl -s $SERVER $@ -l reconciler=kubernixos --prune -f -
   '';
 
   phases = [ "installPhase" ];
