@@ -48,10 +48,9 @@ in
 
     server = mkOption {
       type = str;
-      default = "";
       description = ''
         Address to the kubernetes apiserver.
-        If set, kubectl will be invoked with the `-s` flag set.
+        This is a safety to ensure that applying kubeconfigs and manifest conf match.
       '';
     };
 
