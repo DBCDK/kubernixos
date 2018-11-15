@@ -5,7 +5,18 @@ stdenv.mkDerivation {
 
   # Rewrite this is a real programming language at some point
   # Bash is.. Annoying
-  src = with pkgs; writeText "kubernixos" ''
+  src = with pkgs;
+  let
+    kubectl = pkgs.kubectl.overrideAttrs (oldAttrs: rec {
+      patches = [
+       (fetchpatch {
+         url    = "https://github.com/kubernetes/kubernetes/pull/69344.patch";
+         sha256 = "0sz4766n5300l9wxk0yj4q7w5ybfkx9wfm5ljfrx5s5vhm1zj0bd";
+       })
+      ];
+    });
+  in
+  writeText "kubernixos" ''
     #!${stdenv.shell}
     set -euo pipefail
     PACKAGES="''${PACKAGES:-${path}}"
