@@ -12,9 +12,16 @@ stdenv.mkDerivation {
 
     TOP=$(${nix}/bin/nix eval --arg packages "$PACKAGES" --arg modules "$MODULES" -f @out@/lib/kubernixos.nix kubernixos --json)
     SERVER=$(echo $TOP | ${jq}/bin/jq -rMc '.config.server')
-    MANIFESTS=$(echo $TOP | ${jq}/bin/jq -Mc '.manifests')
-    echo $MANIFESTS | \
-      ${kubectl}/bin/kubectl -s $SERVER $@ -l reconciler=kubernixos --prune -f -
+
+    OUT=$(mktemp)
+    echo $TOP | ${jq}/bin/jq -Mc '.manifests' > $OUT
+
+    if [ -n "''${DEBUG:-}" ]; then
+      echo "Output written to: $OUT"
+    else
+      ${kubectl}/bin/kubectl -s $SERVER $@ -l reconciler=kubernixos --prune -f $OUT
+      rm $OUT
+    fi
   '';
 
   phases = [ "installPhase" ];
