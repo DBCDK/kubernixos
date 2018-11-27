@@ -1,4 +1,4 @@
-{ stdenv, fetchgit, buildGoPackage, go-bindata, lib,
+{ stdenv, fetchgit, buildGoPackage, go-bindata, lib, removeReferencesTo, go,
   version ? "dev"
 }:
 
@@ -13,12 +13,14 @@ let
         isNix = hasSuffix ".nix" base;
     in
         (type == "directory" && base == "lib") ||
+        (type == "directory" && base == "kubeval") ||
+        (type == "directory" && base == "schemas") ||
         (type == "directory" && base == "assets") ||
         (type == "directory" && base == "nix") ||
         (type == "directory" && base == "kubeclient") ||
         (type == "directory" && base == "kubectl") ||
         (type == "regular" && isGo) ||
-        (type == "regular" && dir == "lib" && isNix);
+        (type == "regular" && isNix);
 in
 (buildGoPackage rec {
   name = "kubernixos-unstable-${version}";
@@ -30,9 +32,16 @@ in
 
   outputs = [ "out" "bin" ];
 
-  buildInputs = [ go-bindata ];
+  buildInputs = [ go-bindata removeReferencesTo ];
   prePatch = ''
     go-bindata -pkg assets -o assets/assets.go lib/
+  '';
+
+  postInstall = ''
+    mkdir -p $out
+    cp -rv $src/lib $out/
+    cp -rv $bin/bin $out/
+    find $out/bin -type f -exec remove-references-to -t ${go} '{}' +
   '';
 
   meta = {
