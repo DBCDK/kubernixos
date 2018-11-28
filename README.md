@@ -1,5 +1,7 @@
 # Kubernixos
 
+[![Build Status](https://travis-ci.org/DBCDK/kubernixos.svg?branch=master)](https://travis-ci.org/DBCDK/kubernixos)
+
 This is the ~~first~~ second attempt to create a simple wrapper around the declarative
 parts of kubectl.
 
