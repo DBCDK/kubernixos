@@ -6,7 +6,9 @@ let
     inherit pkgs modules;
   }).config.kubernixos;
 
-  kubernixos = with builtins; substring 0 32 (hashString "sha256" (toJSON cfg.manifests));
+  # Kubernetes label can only have a max length of 63 chars, which explains the substring below
+  # see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+  kubernixos = with builtins; substring 0 62 (hashString "sha256" (toJSON cfg.manifests));
 
   merge = name: item:
     pkgs.lib.recursiveUpdate item {

@@ -10,7 +10,6 @@ let
       if [[ `${which} kubernixos 2>&1 >/dev/null` ]]; then
         export PATH=$PATH:$(pwd)/result-bin/bin
       fi
-      #source <(morph --completion-script-bash)
     fi
   '';
   makeEnv = writeScriptBin "make-env" (''
@@ -55,7 +54,6 @@ in
      makeBuild
      nix
      nix-prefetch-git
-     openssh
      dep
     ];
 

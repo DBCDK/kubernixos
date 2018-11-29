@@ -13,7 +13,7 @@ import (
 
 const labelName = "kubernixos"
 
-func GetAllResources(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
+func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
 	resources := make(map[string]Object, 0)
 	for _, t := range types {
 

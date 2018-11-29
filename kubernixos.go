@@ -26,9 +26,7 @@ func main() {
 	passthroughArgs := parseCmdline(os.Args[1:])
 
 	deployFile, err := ioutil.TempFile("", "kubernixos")
-	if err != nil {
-		fail("init", err)
-	}
+	fail("init", err)
 	defer os.Remove(deployFile.Name())
 
 	config, err := eval(deployFile)
@@ -47,7 +45,7 @@ func main() {
 	types, err = kubeclient.GetResourceTypes(clients)
 	fail("resource-types", err)
 
-	objects, err := kubeclient.GetAllResources(restConfig, config, types)
+	objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
 	fail("all-resources", err)
 
 	prune(objects, restConfig)
@@ -83,6 +81,9 @@ func parseArg(arg string) bool {
 	case "--show-trace":
 		nixArgs = append(nixArgs, arg)
 		return true
+	case "--prune":
+		fmt.Fprintf(os.Stderr, "Usage of `kubectl apply --prune` is disabled in kubernixos\n")
+		os.Exit(1)
 	}
 
 	return false
