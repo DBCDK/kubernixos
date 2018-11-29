@@ -26,9 +26,7 @@ func main() {
 	passthroughArgs := parseCmdline(os.Args[1:])
 
 	deployFile, err := ioutil.TempFile("", "kubernixos")
-	if err != nil {
-		fail("init", err)
-	}
+	fail("init", err)
 	defer os.Remove(deployFile.Name())
 
 	config, err := eval(deployFile)
