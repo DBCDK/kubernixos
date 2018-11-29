@@ -2,8 +2,5 @@ language: nix
 nix: 2.1.1
 
 script: nix-shell --run 'make-build'
-
-cache:
-  directories:
-  - /nix
+sudo: require
 
