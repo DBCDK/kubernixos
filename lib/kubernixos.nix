@@ -2,11 +2,19 @@
 let
   pkgs = if builtins.isAttrs packages then packages else (import packages {});
 
+  cfg = (import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
+    inherit pkgs modules;
+  }).config.kubernixos;
+
+  # Kubernetes label can only have a max length of 63 chars, which explains the substring below
+  # see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+  kubernixos = with builtins; substring 0 62 (hashString "sha256" (toJSON cfg.manifests));
+
   merge = name: item:
     pkgs.lib.recursiveUpdate item {
       metadata = {
         labels = {
-          reconciler = "kubernixos";
+          inherit kubernixos;
         };
       };
     };
@@ -14,16 +22,14 @@ let
 in
 {
 
-  kubernixos = rec{
+  kubernixos = {
 
-    config = (import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
-     inherit pkgs modules;
-    }).config.kubernixos;
+    config = (removeAttrs cfg ["assertions" "manifests"]) // { checksum = kubernixos; };
 
     manifests = with pkgs;
     let
       # Assertion validation borrowed from /modules/system/activation/top-level.nix
-      failedAssertions = with pkgs.lib; map (x: x.message) (filter (x: !x.assertion) config.assertions);
+      failedAssertions = with pkgs.lib; map (x: x.message) (filter (x: !x.assertion) cfg.assertions);
     in
       if failedAssertions != []
       then throw "\nFailed assertions:\n${concatStringsSep "\n" (map (x: "- ${x}") failedAssertions)}"
@@ -31,7 +37,7 @@ in
       {
         apiVersion = "v1";
         kind = "List";
-        items = lib.mapAttrsToList merge config.manifests;
+        items = lib.mapAttrsToList merge cfg.manifests;
       };
 
   };
