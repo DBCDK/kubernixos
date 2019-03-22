@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"os"
+	"strings"
+
 	// needed to enable oidc authentication
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -131,17 +133,44 @@ func prune(objects map[string]kubeclient.Object, restConfig *rest.Config) {
 		fmt.Print(o.Metadata.SelfLink)
 		fmt.Print(", checksum: ")
 		fmt.Print(o.Metadata.Labels["kubernixos"])
+		fmt.Println(" (dry-run)")
+	}
 
-		if doPrune {
-			fmt.Println()
-			err := kubeclient.DeleteObject(restConfig, o)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to prune object: %s with error: %s\n",
-					o.Metadata.SelfLink,
-					err.Error())
+	count := len(objects)
+	if count > 0 && doPrune {
+		fmt.Fprintf(os.Stderr, "You are about to delete %d objects, please confirm with 'yes' or 'no': ", count)
+		if askForConfirmation() {
+			for _, o := range objects {
+				fmt.Print("Pruning: ")
+				fmt.Print(o.Metadata.SelfLink)
+				fmt.Print(", checksum: ")
+				fmt.Print(o.Metadata.Labels["kubernixos"])
+				fmt.Println()
+
+				err := kubeclient.DeleteObject(restConfig, o)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to prune object: %s with error: %s\n",
+						o.Metadata.SelfLink,
+						err.Error())
+				}
 			}
-		} else {
-			fmt.Println(" (dry-run)")
 		}
+	}
+}
+
+func askForConfirmation() bool {
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		return false
+	}
+	response = strings.ToLower(response)
+	if response == "yes" {
+		return true
+	} else if response == "no" {
+		return false
+	} else {
+		fmt.Print("Please type yes or no and then press enter: ")
+		return askForConfirmation()
 	}
 }
