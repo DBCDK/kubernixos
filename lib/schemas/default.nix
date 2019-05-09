@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   name = "kubernetes-schemas-${version}";
-  version = "c7672fd48e1421f0060dd54b6620baa2ab7224ba";
+  version = "8aa572595b98d73b2b9415ca576f78e163381b10";
 
   src = fetchFromGitHub {
     owner = "garethr";
     repo = "kubernetes-json-schema";
     rev = version;
-    sha256 = "0picr3wvjx4qv158jy4f60pl225rm4mh0l97pf8nqi9h9x4x888p";
+    sha256 = "0fxnx0p9dq5rrbg64d8m13m2w31kkyzbiy064rl3ka46bcawzq2z";
   };
 
   phases = [ "installPhase" ];

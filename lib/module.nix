@@ -35,8 +35,7 @@ in
     };
 
     version = mkOption {
-      type = enum [ "1.11.0" "1.11.1" ];
-      default = "1.11.1";
+      type = str;
       description = "Kubernetes version to apply manifest validation against.";
     };
 
