@@ -28,3 +28,19 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "k8s.io/api"
+  branch = "release-1.13"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.13"
+
+[[constraint]]
+  name = "k8s.io/klog"
+  branch = "release-1.13"
+
+[[constraint]]
+  name = "sigs.k8s.io/yaml"
+  branch = "release-1.13"
