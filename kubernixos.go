@@ -10,17 +10,26 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"os"
+	"path"
+	"regexp"
 	"strings"
 
 	// needed to enable oidc authentication
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
+	godiff "github.com/sourcegraph/go-diff/diff"
 )
 
 var (
+	doDiff = false
 	doApply = false
 	doPrune = false
 	doDump  = false
 	nixArgs = make([]string, 0)
+	ignoreDiffOn = map[string]bool{
+		"kubernixos": true,
+		"generation": true,
+	}
 )
 
 func main() {
@@ -33,6 +42,13 @@ func main() {
 
 	config, err := eval(deployFile)
 	fail("eval", err)
+
+	if doDiff {
+		err = diff(deployFile, config, passthroughArgs)
+		fail("diff", err)
+		// The diff command cannot currently be combined with other commands/args
+		os.Exit(0)
+	}
 
 	err = apply(deployFile, config, passthroughArgs)
 	fail("apply", err)
@@ -71,6 +87,9 @@ func parseCmdline(args []string) (passthroughArgs []string) {
 
 func parseArg(arg string) bool {
 	switch arg {
+	case "diff":
+		doDiff = true
+		return true
 	case "apply":
 		doApply = true
 		return true
@@ -88,6 +107,51 @@ func parseArg(arg string) bool {
 		os.Exit(1)
 	}
 
+	return false
+}
+
+func diff(inFile *os.File, config *nix.Config, args []string) error {
+
+	difs, err := kubectl.Diff(inFile, config.Server, args)
+	if err != nil {
+		return err
+	}
+
+	rx, err := regexp.Compile("^(\\+|\\-)\\s*([a-zA-Z0-9]+):")
+	if err != nil {
+		return err
+	}
+	for _, d := range difs {
+		if hasChanged(d, rx) {
+			parts := strings.Split(path.Base(d.OrigName), ".")
+			name, parts := parts[len(parts)-1], parts[:len(parts)-1]
+			namespace, parts := parts[len(parts)-1], parts[:len(parts)-1]
+			kind := strings.Join(parts, ".")
+			if namespace == "" {
+				fmt.Printf("%s : %s\n", kind, name)
+			} else {
+				fmt.Printf("%s . %s : %s\n", namespace, kind, name)
+			}
+		}
+	}
+
+	return nil
+}
+
+func hasChanged(d *godiff.FileDiff, rx *regexp.Regexp) bool {
+	for _, h := range d.Hunks {
+		lines := strings.Split(string(h.Body), "\n")
+		for _, l := range lines {
+			field := rx.FindStringSubmatch(l)
+			if len(field) == 3 {
+				if _, ok := ignoreDiffOn[field[2]]; ok {
+					continue
+				} else {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
 

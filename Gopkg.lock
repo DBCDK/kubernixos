@@ -87,6 +87,14 @@
   version = "1.0.1"
 
 [[projects]]
+  digest = "1:f0be8922b4a34a3e07caef4c8bcb9377713af6edf3b7cb9ded42f095b7994374"
+  name = "github.com/sourcegraph/go-diff"
+  packages = ["diff"]
+  pruneopts = "UT"
+  revision = "042635e6444e67483d777aaa240274f13691500c"
+  version = "v0.5.1"
+
+[[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
   name = "github.com/spf13/pflag"
   packages = ["."]
@@ -386,10 +394,19 @@
   revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
   version = "v1.1.0"
 
+[[projects]]
+  digest = "1:ffbeee69d5d01b594a4ca53e359861e3416c70bdbca8d423c72b815f470ecc49"
+  name = "sourcegraph.com/sqs/pbtypes"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "688c2c2cb411327a50aae0f89119af9f38b0fc03"
+  version = "v1.0.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/sourcegraph/go-diff/diff",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime/schema",

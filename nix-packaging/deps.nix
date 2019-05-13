@@ -82,6 +82,15 @@
     };
   }
   {
+    goPackagePath  = "github.com/sourcegraph/go-diff";
+    fetch = {
+      type = "git";
+      url = "https://github.com/sourcegraph/go-diff";
+      rev =  "042635e6444e67483d777aaa240274f13691500c";
+      sha256 = "0acabccjmxgdvhyd7fr0krlf7ymc7mngdq292n03hfys9nrnb0b2";
+    };
+  }
+  {
     goPackagePath  = "github.com/spf13/pflag";
     fetch = {
       type = "git";
@@ -223,6 +232,15 @@
       url = "https://github.com/kubernetes-sigs/yaml";
       rev =  "fd68e9863619f6ec2fdd8625fe1f02e7c877e480";
       sha256 = "1p7hvjdr5jsyk7nys1g1pmgnf3ys6n320i6hds85afppk81k01kb";
+    };
+  }
+  {
+    goPackagePath  = "sourcegraph.com/sqs/pbtypes";
+    fetch = {
+      type = "git";
+      url = "https://github.com/sqs/pbtypes";
+      rev =  "688c2c2cb411327a50aae0f89119af9f38b0fc03";
+      sha256 = "0hl37m5lvbay8b26dk84ahaxd73vndn4kbw61wd6m8jkw5bl3z9k";
     };
   }
 ]
