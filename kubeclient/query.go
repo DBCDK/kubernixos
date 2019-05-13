@@ -12,6 +12,7 @@ import (
 )
 
 const labelName = "kubernixos"
+const ignoreLabelName = "kubernixos-ignore"
 
 func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
 	resources := make(map[string]Object, 0)
@@ -30,7 +31,8 @@ func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []Re
 
 		req := client.Get().
 			Resource(t.Name).
-			Param("labelSelector", labelName)
+			Param("labelSelector", labelName).
+			Param("labelSelector", "!" + ignoreLabelName)
 
 		raw, err := req.DoRaw()
 		if err != nil {
