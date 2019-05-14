@@ -43,15 +43,14 @@ func main() {
 	config, err := eval(deployFile)
 	fail("eval", err)
 
+	// The diff command cannot currently be combined with apply
 	if doDiff {
 		err = diff(deployFile, config, passthroughArgs)
 		fail("diff", err)
-		// The diff command cannot currently be combined with other commands/args
-		os.Exit(0)
+	} else {
+		err = apply(deployFile, config, passthroughArgs)
+		fail("apply", err)
 	}
-
-	err = apply(deployFile, config, passthroughArgs)
-	fail("apply", err)
 
 	restConfig, err := kubeclient.GetKubeConfig(config.Server)
 	fail("kube-config", err)
@@ -130,7 +129,7 @@ func diff(inFile *os.File, config *nix.Config, args []string) error {
 			if namespace == "" {
 				fmt.Printf("%s : %s\n", kind, name)
 			} else {
-				fmt.Printf("%s . %s : %s\n", namespace, kind, name)
+				fmt.Printf("%s : %s : %s\n", namespace, kind, name)
 			}
 		}
 	}
