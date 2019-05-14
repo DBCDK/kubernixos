@@ -142,6 +142,8 @@ func diff(inFile *os.File, config *nix.Config, args []string) (unchanged map[kub
 	if err != nil {
 		return
 	}
+
+	unchanged = make(map[kubeclient.ObjectSpec]bool, 0)
 	for _, d := range diffs {
 		var spec = kubeclient.ObjectSpec{}
 		if hasChanged(d, rx) {
