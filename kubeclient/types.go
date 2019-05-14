@@ -1,7 +1,5 @@
 package kubeclient
 
-import "fmt"
-
 type ResourceType struct {
 	Name        string
 	APIPath     string
@@ -36,6 +34,7 @@ type ObjectSpec struct {
 	Name string
 }
 
+/*
 func (spec ObjectSpec) String() string {
 	if spec.Namespace == "" {
 		return fmt.Sprintf("%s.%s : %s\n", spec.APIVersion, spec.Kind, spec.Name)
@@ -43,9 +42,11 @@ func (spec ObjectSpec) String() string {
 		return fmt.Sprintf("%s : %s.%s : %s\n", spec.Namespace, spec.APIVersion, spec.Kind, spec.Name)
 	}
 }
+*/
 
 func (object *Object) MakeSpec() ObjectSpec {
 	return ObjectSpec{
+		APIVersion: object.APIVersion,
 		Kind: object.Kind,
 		Namespace: object.Metadata.Namespace,
 		Name: object.Metadata.Name,
