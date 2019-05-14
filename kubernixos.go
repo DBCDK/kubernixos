@@ -43,18 +43,36 @@ func main() {
 	config, err := eval(deployFile)
 	fail("eval", err)
 
-	// The diff command cannot currently be combined with apply
-	if doDiff {
-		err = diff(deployFile, config, passthroughArgs)
-		fail("diff", err)
-	} else {
-		err = apply(deployFile, config, passthroughArgs)
-		fail("apply", err)
-	}
+	var unchangedObjects map[kubeclient.ObjectSpec]bool
+	unchangedObjects, err = diff(deployFile, config, passthroughArgs)
+	fail("diff", err)
+
+	err = apply(deployFile, config, passthroughArgs)
+	fail("apply", err)
 
 	restConfig, err := kubeclient.GetKubeConfig(config.Server)
 	fail("kube-config", err)
 
+	objects := getResourcesToPrune(restConfig, config)
+	pruneDryRun(objects, unchangedObjects)
+	prune(objects, restConfig)
+}
+
+func pruneDryRun(objects map[string]kubeclient.Object, filter map[kubeclient.ObjectSpec]bool) {
+	for _, o := range objects {
+		spec := o.MakeSpec()
+		if _, ok := filter[spec]; ok {
+			continue
+		}
+		fmt.Print("Pruning: ")
+		fmt.Print(spec)
+		fmt.Print(", checksum: ")
+		fmt.Print(o.Metadata.Labels["kubernixos"])
+		fmt.Println(" (dry-run)")
+	}
+}
+
+func getResourcesToPrune(restConfig *rest.Config, config *nix.Config) map[string]kubeclient.Object {
 	clients, err := kubeclient.GetKubeClient(restConfig)
 	fail("kube-client", err)
 
@@ -64,8 +82,7 @@ func main() {
 
 	objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
 	fail("all-resources", err)
-
-	prune(objects, restConfig)
+	return objects
 }
 
 func fail(stage string, err error) {
@@ -109,32 +126,37 @@ func parseArg(arg string) bool {
 	return false
 }
 
-func diff(inFile *os.File, config *nix.Config, args []string) error {
+func diff(inFile *os.File, config *nix.Config, args []string) (unchanged map[kubeclient.ObjectSpec]bool, err error) {
 
-	difs, err := kubectl.Diff(inFile, config.Server, args)
+	if !doDiff {
+		return
+	}
+
+	var diffs []*godiff.FileDiff
+	diffs, err = kubectl.Diff(inFile, config.Server, args)
 	if err != nil {
-		return err
+		return
 	}
 
 	rx, err := regexp.Compile("^(\\+|\\-)\\s*([a-zA-Z0-9]+):")
 	if err != nil {
-		return err
+		return
 	}
-	for _, d := range difs {
+	for _, d := range diffs {
+		var spec = kubeclient.ObjectSpec{}
 		if hasChanged(d, rx) {
 			parts := strings.Split(path.Base(d.OrigName), ".")
-			name, parts := parts[len(parts)-1], parts[:len(parts)-1]
-			namespace, parts := parts[len(parts)-1], parts[:len(parts)-1]
-			kind := strings.Join(parts, ".")
-			if namespace == "" {
-				fmt.Printf("%s : %s\n", kind, name)
-			} else {
-				fmt.Printf("%s : %s : %s\n", namespace, kind, name)
-			}
+			spec.Name, parts = parts[len(parts)-1], parts[:len(parts)-1]
+			spec.Namespace, parts = parts[len(parts)-1], parts[:len(parts)-1]
+			spec.Kind, parts = parts[len(parts)-1], parts[:len(parts)-1]
+			spec.APIVersion = strings.Join(parts, ".")
+			fmt.Println(spec)
+		} else {
+			unchanged[spec] = true
 		}
 	}
 
-	return nil
+	return
 }
 
 func hasChanged(d *godiff.FileDiff, rx *regexp.Regexp) bool {
@@ -191,14 +213,6 @@ func eval(outFile *os.File) (config *nix.Config, err error) {
 }
 
 func prune(objects map[string]kubeclient.Object, restConfig *rest.Config) {
-	for _, o := range objects {
-		fmt.Print("Pruning: ")
-		fmt.Print(o.Metadata.SelfLink)
-		fmt.Print(", checksum: ")
-		fmt.Print(o.Metadata.Labels["kubernixos"])
-		fmt.Println(" (dry-run)")
-	}
-
 	count := len(objects)
 	if count > 0 && doPrune {
 		fmt.Fprintf(os.Stderr, "You are about to delete %d objects, please confirm with 'yes' or 'no': ", count)
