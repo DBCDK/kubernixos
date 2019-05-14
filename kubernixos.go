@@ -34,9 +34,6 @@ func main() {
 	config, err := eval(deployFile)
 	fail("eval", err)
 
-	err = apply(deployFile, config, passthroughArgs)
-	fail("apply", err)
-
 	restConfig, err := kubeclient.GetKubeConfig(config.Server)
 	fail("kube-config", err)
 
@@ -47,10 +44,16 @@ func main() {
 	types, err = kubeclient.GetResourceTypes(clients)
 	fail("resource-types", err)
 
-	objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
+	objects, err := kubeclient.GetResources(restConfig, types)
 	fail("all-resources", err)
 
-	prune(objects, restConfig)
+	objects = filterIgnoredResources(objects)
+
+	err = apply(deployFile, config, passthroughArgs)
+	fail("apply", err)
+
+	filtered := filterResourcesToPrune(objects, config)
+	prune(filtered, restConfig)
 }
 
 func fail(stage string, err error) {
@@ -125,6 +128,31 @@ func eval(outFile *os.File) (config *nix.Config, err error) {
 		fmt.Println()
 	}
 	return
+}
+
+func filterIgnoredResources(input *map[string]kubeclient.Object) *map[string]kubeclient.Object {
+	var out = make(map[string]kubeclient.Object, 0)
+	for _, i := range *input {
+		if _, ok := i.Metadata.Labels["kubernixos-ignore"]; ok {
+			fmt.Printf("%s (ignored)\n", i.Metadata.SelfLink)
+			continue
+		}
+		out[i.Metadata.UID] = i
+	}
+	return &out
+}
+
+func filterResourcesToPrune(input *map[string]kubeclient.Object, config *nix.Config) map[string]kubeclient.Object {
+	var out = make(map[string]kubeclient.Object, 0)
+	if len(*input) > 0 {
+		for _, i := range *input {
+			if config.Checksum != i.Metadata.Labels["kubernixos"] {
+				out[i.Metadata.UID] = i
+			}
+		}
+	}
+
+	return out
 }
 
 func prune(objects map[string]kubeclient.Object, restConfig *rest.Config) {

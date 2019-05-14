@@ -2,7 +2,6 @@ package kubeclient
 
 import (
 	"encoding/json"
-	"github.com/dbcdk/kubernixos/nix"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,10 +12,9 @@ import (
 
 const labelName = "kubernixos"
 
-func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
-	resources := make(map[string]Object, 0)
+func GetResources(restConfig *rest.Config, types []ResourceType) (*map[string]Object, error) {
+	var out = make(map[string]Object, 0)
 	for _, t := range types {
-
 		restConfig.APIPath = t.APIPath
 		restConfig.GroupVersion = &schema.GroupVersion{
 			Group:   t.APIGroup,
@@ -45,16 +43,13 @@ func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []Re
 		if err != nil {
 			return nil, err
 		}
-		if len(target.Items) > 0 {
-			for _, i := range target.Items {
-				if config.Checksum != i.Metadata.Labels["kubernixos"] {
-					resources[i.Metadata.UID] = i
-				}
-			}
+
+		for _, i := range target.Items {
+			out[i.Metadata.UID] = i
 		}
 	}
 
-	return resources, nil
+	return &out, nil
 }
 
 func GetResourceTypes(clients *kubernetes.Clientset) (resources []ResourceType, err error) {
