@@ -34,23 +34,26 @@ func main() {
 	config, err := eval(deployFile)
 	fail("eval", err)
 
-	err = apply(deployFile, config, passthroughArgs)
-	fail("apply", err)
+	// non of the below steps should be taken if we're not in either apply or prune mode
+	if doApply || doPrune {
+		err = apply(deployFile, config, passthroughArgs)
+		fail("apply", err)
 
-	restConfig, err := kubeclient.GetKubeConfig(config.Server)
-	fail("kube-config", err)
+		restConfig, err := kubeclient.GetKubeConfig(config.Server)
+		fail("kube-config", err)
 
-	clients, err := kubeclient.GetKubeClient(restConfig)
-	fail("kube-client", err)
+		clients, err := kubeclient.GetKubeClient(restConfig)
+		fail("kube-client", err)
 
-	var types []kubeclient.ResourceType
-	types, err = kubeclient.GetResourceTypes(clients)
-	fail("resource-types", err)
+		var types []kubeclient.ResourceType
+		types, err = kubeclient.GetResourceTypes(clients)
+		fail("resource-types", err)
 
-	objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
-	fail("all-resources", err)
+		objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
+		fail("all-resources", err)
 
-	prune(objects, restConfig)
+		prune(objects, restConfig)
+	}
 }
 
 func fail(stage string, err error) {
