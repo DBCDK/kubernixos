@@ -126,6 +126,9 @@ func eval(outFile *os.File) (config *nix.Config, err error) {
 		json.Indent(&out, byteArr, "", "\t")
 		out.WriteTo(os.Stdout)
 		fmt.Println()
+	} else {
+		// Print the checksum only, if dump isn't requested
+		fmt.Println(config.Checksum)
 	}
 	return
 }
