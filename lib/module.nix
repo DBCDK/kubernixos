@@ -3,17 +3,14 @@
 let
   cfg = config.kubernixos;
 
-  kubeval = pkgs.callPackage ./kubeval {};
-  schemas = pkgs.callPackage ./schemas {};
-
   assertion = with pkgs; with builtins; name: item:
   let
     validate = runCommand "validate-${name}" {} ''
       mkdir -p $out
       echo '${toJSON item}' | \
-        ${kubeval}/bin/kubeval --strict -v ${cfg.version} \
+        ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
         --filename=${name} \
-        --schema-location=file://${schemas}
+        --schema-location=file://${cfg.schemas}
 
       echo -n "true" >$out/result
   '';
@@ -32,6 +29,12 @@ in
       type = attrsOf attrs;
       default = {};
       description = "Attribute set of kubernetes manifests.";
+    };
+
+    schemas = mkOption {
+      type = package;
+      default = pkgs.callPackage ./schemas {};
+      description = "k8s jsonschemas package";
     };
 
     version = mkOption {
