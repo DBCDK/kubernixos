@@ -3,7 +3,6 @@
 let
   cfg = config.kubernixos;
 
-  kubeval = pkgs.callPackage ./kubeval {};
   schemas = pkgs.callPackage ./schemas {};
 
   assertion = with pkgs; with builtins; name: item:
@@ -11,7 +10,7 @@ let
     validate = runCommand "validate-${name}" {} ''
       mkdir -p $out
       echo '${toJSON item}' | \
-        ${kubeval}/bin/kubeval --strict -v ${cfg.version} \
+        ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
         --filename=${name} \
         --schema-location=file://${schemas}
 
