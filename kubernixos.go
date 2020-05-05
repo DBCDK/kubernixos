@@ -7,9 +7,9 @@ import (
 	"github.com/dbcdk/kubernixos/kubeclient"
 	"github.com/dbcdk/kubernixos/kubectl"
 	"github.com/dbcdk/kubernixos/nix"
-	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"os"
+	"path/filepath"
 	"strings"
 
 	// needed to enable oidc authentication
@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	doBuild = false
 	doApply = false
 	doPrune = false
 	doDump  = false
@@ -26,17 +27,42 @@ var (
 func main() {
 
 	passthroughArgs := parseCmdline(os.Args[1:])
+	var config *nix.Config
+	var manifests *map[string]interface{}
+	var err error
+	var inFile *os.File
 
-	deployFile, err := ioutil.TempFile("", "kubernixos")
-	fail("init", err)
-	defer os.Remove(deployFile.Name())
+	if doDump {
+		config, manifests, err = readManifests()
+		fail("eval", err)
+	} else {
+		config, err = readConfig()
+	}
 
-	config, err := eval(deployFile)
-	fail("eval", err)
+	if doDump {
+		byteArr, err := json.Marshal(manifests)
+		fail("dump", err)
+		var out bytes.Buffer
+		json.Indent(&out, byteArr, "", "\t")
+		out.WriteTo(os.Stdout)
+		fmt.Println()
+	} else {
+		// Print the checksum only, if dump isn't requested
+		config, err := readConfig()
+		fail("config", err)
+		fmt.Println(config.Checksum)
+	}
+
+	if doBuild || doApply || doPrune {
+		build, err := nix.Build("build", nixArgs)
+		fail("build", err)
+		inFile, err = os.Open(filepath.Join(build, "all-validated.json"))
+		fail("validate", err)
+	}
 
 	// non of the below steps should be taken if we're not in either apply or prune mode
 	if doApply || doPrune {
-		err = apply(deployFile, config, passthroughArgs)
+		err = apply(inFile, config, passthroughArgs)
 		fail("apply", err)
 
 		restConfig, err := kubeclient.GetKubeConfig(config.Server)
@@ -74,6 +100,9 @@ func parseCmdline(args []string) (passthroughArgs []string) {
 
 func parseArg(arg string) bool {
 	switch arg {
+	case "build":
+		doBuild = true
+		return true
 	case "apply":
 		doApply = true
 		return true
@@ -101,12 +130,9 @@ func apply(inFile *os.File, config *nix.Config, args []string) error {
 	return kubectl.Apply(inFile, config.Server, args)
 }
 
-func eval(outFile *os.File) (config *nix.Config, err error) {
+func read(attr string) (data map[string]map[string]interface{}, err error) {
 	var raw *bytes.Buffer
-	var byteArr []byte
-	var data map[string]map[string]interface{}
-
-	raw, err = nix.Eval("kubernixos", nixArgs)
+	raw, err = nix.Eval(attr, nixArgs)
 	if err != nil {
 		return
 	}
@@ -115,23 +141,48 @@ func eval(outFile *os.File) (config *nix.Config, err error) {
 		return
 	}
 
-	byteArr, err = json.Marshal(data["manifests"])
-	config = &nix.Config{
-		Server:   data["config"]["server"].(string),
-		Checksum: data["config"]["checksum"].(string),
-	}
-	ioutil.WriteFile(outFile.Name(), byteArr, 0755)
-	if doDump {
-		var out bytes.Buffer
-		json.Indent(&out, byteArr, "", "\t")
-		out.WriteTo(os.Stdout)
-		fmt.Println()
-	} else {
-		// Print the checksum only, if dump isn't requested
-		fmt.Println(config.Checksum)
-	}
 	return
 }
+
+func subread(attr string) (data map[string]interface{}, err error) {
+	var raw *bytes.Buffer
+	raw, err = nix.Eval(attr, nixArgs)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(raw.Bytes(), &data)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func readConfig() (*nix.Config, error) {
+	data, err := subread("eval.config")
+	if err != nil {
+		return nil, err
+	}
+	return configFromData(&data), nil
+}
+
+func readManifests() (*nix.Config, *map[string]interface{}, error) {
+	data, err := read("eval")
+	if err != nil {
+		return nil, nil, err
+	}
+	mData := data["manifests"]
+	cData := data["config"]
+	return configFromData(&cData), &mData, nil
+}
+
+func configFromData(data *map[string]interface{}) *nix.Config {
+	return &nix.Config{
+		Server:   (*data)["server"].(string),
+		Checksum: (*data)["checksum"].(string),
+	}
+}
+
 
 func prune(objects map[string]kubeclient.Object, restConfig *rest.Config) {
 	for _, o := range objects {
