@@ -15,7 +15,6 @@ in
 
     schemas = mkOption {
       type = package;
-      default = pkgs.kubeval-schema;
       description = "k8s jsonschemas package";
     };
 
