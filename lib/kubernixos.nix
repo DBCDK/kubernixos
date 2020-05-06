@@ -1,6 +1,7 @@
-{ packages ? <nixpkgs>, lib ? (import <nixpkgs/lib>), modules ? [] }:
+{ packages ? <nixpkgs>, modules ? [] }:
 let
   pkgs = if builtins.isAttrs packages then packages else (import packages {});
+  lib = pkgs.lib;
 
   cfg = (import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
     inherit pkgs modules;
