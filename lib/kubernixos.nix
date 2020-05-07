@@ -1,6 +1,7 @@
- { packages ? <nixpkgs>, modules ? [] }:
+{ packages ? <nixpkgs>, modules ? [] }:
 let
   pkgs = if builtins.isAttrs packages then packages else (import packages {});
+  lib = pkgs.lib;
 
   cfg = (import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
     inherit pkgs modules;
@@ -19,26 +20,29 @@ let
       };
     };
 
+  items = lib.mapAttrs merge cfg.manifests;
+
 in
-{
+rec{
+  eval = {
+      config = (removeAttrs cfg ["manifests" "schemas"]) // { checksum = kubernixos; };
 
-  kubernixos = {
-
-    config = (removeAttrs cfg ["assertions" "manifests"]) // { checksum = kubernixos; };
-
-    manifests = with pkgs;
-    let
-      # Assertion validation borrowed from /modules/system/activation/top-level.nix
-      failedAssertions = with pkgs.lib; map (x: x.message) (filter (x: !x.assertion) cfg.assertions);
-    in
-      if failedAssertions != []
-      then throw "\nFailed assertions:\n${concatStringsSep "\n" (map (x: "- ${x}") failedAssertions)}"
-      else
-      {
-        apiVersion = "v1";
-        kind = "List";
-        items = lib.mapAttrsToList merge cfg.manifests;
+      manifests = {
+          apiVersion = "v1";
+          kind = "List";
+          items = lib.attrValues items;
       };
-
   };
+
+  build =
+      pkgs.runCommand "kubernixos-${kubernixos}" { nativeBuiltInputs = [pkgs.kubeval cfg.schemas]; } ''
+          mkdir -p $out
+          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json") items)}
+          ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/kubernixos.json
+          cd $out
+          ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
+              --output tab \
+              --schema-location=file://${cfg.schemas} \
+              kubernixos.json
+      '';
 }
