@@ -35,7 +35,7 @@ rec{
   };
 
   build =
-      pkgs.runCommand "kubernixos-${kubernixos}" { nativeBuiltInputs = [pkgs.kubeval cfg.schemas]; } ''
+      pkgs.runCommandLocal "kubernixos-${kubernixos}" { nativeBuiltInputs = [pkgs.kubeval cfg.schemas]; } ''
           mkdir -p $out
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json") items)}
           ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/kubernixos.json
