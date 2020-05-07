@@ -37,13 +37,12 @@ rec{
   build =
       pkgs.runCommand "kubernixos-${kubernixos}" { nativeBuiltInputs = [pkgs.kubeval cfg.schemas]; } ''
           mkdir -p $out
-          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "echo '${builtins.toJSON i}' >$out/${n}.json") items)}
+          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json") items)}
+          ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/kubernixos.json
           cd $out
           ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
               --output tab \
               --schema-location=file://${cfg.schemas} \
-              ${lib.concatMapStringsSep " \\\n" (n: "${n}.json") (lib.attrNames items)}
-
-          ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/all-validated.json
+              kubernixos.json
       '';
 }

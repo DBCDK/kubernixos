@@ -56,7 +56,7 @@ func main() {
 	if doBuild || doApply || doPrune {
 		build, err := nix.Build("build", nixArgs)
 		fail("build", err)
-		inFile, err = os.Open(filepath.Join(build, "all-validated.json"))
+		inFile, err = os.Open(filepath.Join(build, "kubernixos.json"))
 		fail("validate", err)
 	}
 
