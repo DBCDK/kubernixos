@@ -20,8 +20,6 @@ let
       };
     };
 
-  items = lib.mapAttrs merge cfg.manifests;
-
 in
 rec{
   eval = {
@@ -30,14 +28,14 @@ rec{
       manifests = {
           apiVersion = "v1";
           kind = "List";
-          items = lib.attrValues items;
+          items = lib.mapAttrsToList merge cfg.manifests;
       };
   };
 
   build =
       pkgs.runCommandLocal "kubernixos-${kubernixos}" { nativeBuiltInputs = [pkgs.kubeval cfg.schemas]; } ''
           mkdir -p $out
-          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json") items)}
+          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json") cfg.manifests)}
           ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/kubernixos.json
           cd $out
           ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
