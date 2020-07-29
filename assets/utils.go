@@ -19,11 +19,22 @@ func Setup() (assetRoot string, err error) {
 	kubernixosPath := filepath.Join(assetRoot, "kubernixos.nix")
 	ioutil.WriteFile(kubernixosPath, kubernixos, 0644)
 
+	eval, err := Asset("lib/eval.nix")
+	if err != nil {
+		return "", err
+	}
+	evalPath := filepath.Join(assetRoot, "eval.nix")
+	ioutil.WriteFile(evalPath, eval, 0644)
+
 	return
 }
 
 func Teardown(assetRoot string) (err error) {
 	err = os.Remove(filepath.Join(assetRoot, "kubernixos.nix"))
+	if err != nil {
+		return err
+	}
+	err = os.Remove(filepath.Join(assetRoot, "eval.nix"))
 	if err != nil {
 		return err
 	}
