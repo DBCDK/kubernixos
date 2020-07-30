@@ -17,7 +17,7 @@ type Config struct {
 func Eval(attribute string, args []string) (buffer *bytes.Buffer, err error) {
 	root, _ := assets.Setup()
 	defer assets.Teardown(root)
-	kubernixosNix := filepath.Join(root, "kubernixos.nix")
+	kubernixosNix := filepath.Join(root, "eval.nix")
 
 	modules := os.Getenv("MODULES")
 	if modules == "" {
@@ -47,7 +47,7 @@ func Eval(attribute string, args []string) (buffer *bytes.Buffer, err error) {
 func Build(attribute string, args []string) (path string, err error) {
 	root, _ := assets.Setup()
 	defer assets.Teardown(root)
-	kubernixosNix := filepath.Join(root, "kubernixos.nix")
+	kubernixosNix := filepath.Join(root, "eval.nix")
 
 	modules := os.Getenv("MODULES")
 	if modules == "" {

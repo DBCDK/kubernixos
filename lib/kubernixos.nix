@@ -1,18 +1,13 @@
-{ packages ? <nixpkgs>, modules ? [] }:
+{ config, lib, pkgs, ... }:
 let
-  pkgs = if builtins.isAttrs packages then packages else (import packages {});
-  lib = pkgs.lib;
-
-  cfg = (import "${toString pkgs.path}/nixos/lib/eval-config.nix" {
-    inherit pkgs modules;
-  }).config.kubernixos;
+  cfg = config.kubernixos;
 
   # Kubernetes label can only have a max length of 63 chars, which explains the substring below
   # see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
   kubernixos = with builtins; substring 0 62 (hashString "sha256" (toJSON cfg.manifests));
 
   merge = name: item:
-    pkgs.lib.recursiveUpdate item {
+    lib.recursiveUpdate item {
       metadata = {
         labels = {
           inherit kubernixos;
@@ -20,10 +15,8 @@ let
       };
     };
 
-in
-rec{
   eval = {
-      config = (removeAttrs cfg ["manifests" "schemas"]) // { checksum = kubernixos; };
+      config = (removeAttrs cfg ["build" "eval" "manifests" "schemas"]) // { checksum = kubernixos; };
 
       manifests = {
           apiVersion = "v1";
@@ -43,4 +36,51 @@ rec{
               --schema-location=file://${cfg.schemas} \
               kubernixos.json
       '';
+in
+{
+  options.kubernixos = with lib; with lib.types; {
+
+    manifests = mkOption {
+      type = attrsOf attrs;
+      default = {};
+      description = "Attribute set of kubernetes manifests.";
+    };
+
+    schemas = mkOption {
+      type = package;
+      description = "k8s jsonschemas package";
+    };
+
+    version = mkOption {
+      type = str;
+      description = "Kubernetes version to apply manifest validation against.";
+    };
+
+    server = mkOption {
+      type = str;
+      description = ''
+        Address to the kubernetes apiserver.
+        This is a safety to ensure that applying kubeconfigs and manifest conf match.
+      '';
+    };
+
+    eval = mkOption {
+      type = attrs;
+      description = ''
+        Meta attrs that holds the evalutation result of the kubernixos expression
+      '';
+    };
+
+    build = mkOption {
+      type = package;
+      description = ''
+        The output kubernixos manifest package.
+      '';
+    };
+
+  };
+
+  config.kubernixos = {
+    inherit build eval;
+  };
 }
