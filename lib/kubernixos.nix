@@ -34,6 +34,7 @@ let
           ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
               --output tab \
               --schema-location=file://${cfg.schemas} \
+              ${lib.concatMapStringsSep " " (kind: "--skip-kinds ${kind}") cfg.skipSchemas} \
               kubernixos.json
       '';
 in
@@ -76,6 +77,15 @@ in
       description = ''
         The output kubernixos manifest package.
       '';
+    };
+
+    skipSchemas = mkOption {
+      type = listOf str;
+      default = [];
+      description = ''
+        A list of resource kinds for which manifest validation is skipped.
+      '';
+      example = [ "CustomResourceDefinition" ];
     };
 
   };
