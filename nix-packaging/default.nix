@@ -30,17 +30,13 @@ in
   src = filterSource filter ./..;
   goDeps = ./deps.nix;
 
-  outputs = [ "out" "bin" ];
-
-  buildInputs = [ go-bindata removeReferencesTo ];
+  nativeBuildInputs = [ go-bindata removeReferencesTo ];
   prePatch = ''
     go-bindata -pkg assets -o assets/assets.go lib/
   '';
 
   postInstall = ''
-    mkdir -p $out
     cp -rv $src/lib $out/
-    cp -rv $bin/bin $out/
     find $out/bin -type f -exec remove-references-to -t ${go} '{}' +
   '';
 
