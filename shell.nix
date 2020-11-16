@@ -6,9 +6,9 @@ let
   packagingOut = "./nix-packaging";
 
   shellHook = ''
-    if [[ -f ./result-bin/bin/kubernixos ]]; then
+    if [[ -f ./result/bin/kubernixos ]]; then
       if [[ `${which} kubernixos 2>&1 >/dev/null` ]]; then
-        export PATH=$PATH:$(pwd)/result-bin/bin
+        export PATH=$PATH:$(pwd)/result/bin
       fi
     fi
   '';
@@ -37,7 +37,7 @@ let
     outpath="$(readlink -f ${packagingOut})/deps.nix"
 
     ${nix}/bin/nix-build -E 'with import <nixpkgs> {};
-      callPackage ./nix-packaging/default.nix {}' -A bin $@
+      callPackage ./nix-packaging/default.nix {}' -A out $@
 
     make-env
   '';
