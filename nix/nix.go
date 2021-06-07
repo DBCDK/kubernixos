@@ -56,15 +56,16 @@ func Build(attribute string, args []string) (path string, err error) {
 	packages := os.Getenv("PACKAGES")
 
 	nixArgs := make([]string, 0)
+	nixArgs = append(nixArgs, []string{"build", "-v"}...)
 	if packages != "" {
 		nixArgs = append(nixArgs, []string{"--arg", "packages", packages}...)
 	}
 	nixArgs = append(nixArgs, []string{"--arg", "modules", modules}...)
 	nixArgs = append(nixArgs, args...)
 	nixArgs = append(nixArgs, []string{"-o", "result-kubernixos"}...)
-	nixArgs = append(nixArgs, []string{kubernixosNix}...)
-	nixArgs = append(nixArgs, []string{"-A", attribute}...)
-	cmd := exec.Command("nix-build", nixArgs...)
+	nixArgs = append(nixArgs, []string{"-f", kubernixosNix}...)
+	nixArgs = append(nixArgs, []string{attribute}...)
+	cmd := exec.Command("nix", nixArgs...)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
