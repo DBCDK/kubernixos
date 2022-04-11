@@ -3,7 +3,6 @@ package kubeclient
 import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -26,7 +25,7 @@ func GetKubeConfig(server string) (*rest.Config, error) {
 		return nil, err
 	}
 
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{}
 	return config, nil
 }
 

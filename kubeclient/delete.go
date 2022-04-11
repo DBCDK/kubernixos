@@ -1,5 +1,6 @@
 package kubeclient
 
+import "context"
 import "k8s.io/client-go/rest"
 
 func DeleteObject(restConfig *rest.Config, o Object) error {
@@ -10,6 +11,7 @@ func DeleteObject(restConfig *rest.Config, o Object) error {
 	}
 
 	req := client.Delete().RequestURI(o.Metadata.SelfLink)
-	_, err = req.DoRaw()
+	ctx := context.Background()
+	_, err = req.DoRaw(ctx)
 	return err
 }

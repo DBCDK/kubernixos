@@ -1,6 +1,7 @@
 package kubeclient
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/dbcdk/kubernixos/nix"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,8 @@ func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []Re
 			Resource(t.Name).
 			Param("labelSelector", labelName)
 
-		raw, err := req.DoRaw()
+		ctx := context.Background()
+		raw, err := req.DoRaw(ctx)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				return nil, err
