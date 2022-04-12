@@ -3,7 +3,6 @@ package nix
 import (
 	"bytes"
 	"errors"
-	"github.com/dbcdk/kubernixos/assets"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,9 +13,9 @@ type Config struct {
 	Checksum string
 }
 
+var root string
+
 func Eval(attribute string, args []string) (buffer *bytes.Buffer, err error) {
-	root, _ := assets.Setup()
-	defer assets.Teardown(root)
 	kubernixosNix := filepath.Join(root, "eval.nix")
 
 	modules := os.Getenv("MODULES")
@@ -45,8 +44,6 @@ func Eval(attribute string, args []string) (buffer *bytes.Buffer, err error) {
 }
 
 func Build(attribute string, args []string) (path string, err error) {
-	root, _ := assets.Setup()
-	defer assets.Teardown(root)
 	kubernixosNix := filepath.Join(root, "eval.nix")
 
 	modules := os.Getenv("MODULES")
