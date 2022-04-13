@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/DBCDK/kingpin"
 	"github.com/dbcdk/kubernixos/kubeclient"
 	"github.com/dbcdk/kubernixos/kubectl"
 	"github.com/dbcdk/kubernixos/nix"
@@ -11,75 +12,54 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
 	// needed to enable oidc authentication
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 var (
-	doBuild = false
-	doApply = false
-	doPrune = false
-	doDump  = false
-	nixArgs = make([]string, 0)
+	app       = kingpin.New("Kubernixos", "Simple kubernetes manifest reconciler configured by NixOS modules")
+	dump      = parseDump(app.Command("dump", "Dump all kubernetes resources in manifest to stdout."))
+	apply     = parseApply(app.Command("apply", "Builds the manifest, applies resources to the cluster, then prunes old dpeloyments"))
+	build     = parseBuild(app.Command("build", "Returns a store-path with the kubernetes resources from the manifest."))
+	test      = parseBuild(app.Command("test", "test."))
+	manifest  string
+	doPrune   bool
+	showTrace bool
+	nixArgs   []string
 )
 
-func main() {
+func parseManifestAndGlobalFlags(cmd *kingpin.CmdClause) {
+	parseShowTraceFlag(cmd)
+	cmd.Arg("manifest", "File containing the kubernixos manifest").Required().StringVar(&manifest)
+}
 
-	passthroughArgs := parseCmdline(os.Args[1:])
-	var config *nix.Config
-	var manifests *map[string]interface{}
-	var err error
-	var inFile *os.File
+func parseDump(cmd *kingpin.CmdClause) *kingpin.CmdClause {
+	parseManifestAndGlobalFlags(cmd)
+	return cmd
+}
 
-	if doDump {
-		config, manifests, err = readManifests()
-		fail("eval", err)
-	} else {
-		config, err = readConfig()
-	}
+func parseApply(cmd *kingpin.CmdClause) *kingpin.CmdClause {
+	parseManifestAndGlobalFlags(cmd)
+	parsePruneFlag(cmd)
+	return cmd
+}
 
-	if doDump {
-		byteArr, err := json.Marshal(manifests)
-		fail("dump", err)
-		var out bytes.Buffer
-		json.Indent(&out, byteArr, "", "\t")
-		out.WriteTo(os.Stdout)
-		fmt.Println()
-	} else {
-		// Print the checksum only, if dump isn't requested
-		config, err := readConfig()
-		fail("config", err)
-		fmt.Println(config.Checksum)
-	}
+func parsePruneFlag(cmd *kingpin.CmdClause) {
+	cmd.Flag("prune", "Prune deployments with noncurrent label").Default("False").BoolVar(&doPrune)
+}
 
-	if doBuild || doApply || doPrune {
-		build, err := nix.Build("build", nixArgs)
-		fail("build", err)
-		fmt.Println(build) // print outpath to stdout
-		inFile, err = os.Open(filepath.Join(build, "kubernixos.json"))
-		fail("validate", err)
-	}
+func parseShowTraceFlag(cmd *kingpin.CmdClause) {
+	cmd.Flag("show-trace", "Whether to ask interactively for remote sudo password when needed").Default("False").BoolVar(&showTrace)
+}
 
-	// non of the below steps should be taken if we're not in either apply or prune mode
-	if doApply || doPrune {
-		err = apply(inFile, config, passthroughArgs)
-		fail("apply", err)
+func parseBuild(cmd *kingpin.CmdClause) *kingpin.CmdClause {
+	parseManifestAndGlobalFlags(cmd)
+	return cmd
+}
 
-		restConfig, err := kubeclient.GetKubeConfig(config.Server)
-		fail("kube-config", err)
-
-		clients, err := kubeclient.GetKubeClient(restConfig)
-		fail("kube-client", err)
-
-		var types []kubeclient.ResourceType
-		types, err = kubeclient.GetResourceTypes(clients)
-		fail("resource-types", err)
-
-		objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
-		fail("all-resources", err)
-
-		prune(objects, restConfig)
+func addFlagsToNixArgs() {
+	if showTrace {
+		nixArgs = append(nixArgs, "--show-trace")
 	}
 }
 
@@ -90,44 +70,64 @@ func fail(stage string, err error) {
 	}
 }
 
-func parseCmdline(args []string) (passthroughArgs []string) {
-	for _, a := range args {
-		if !parseArg(a) {
-			passthroughArgs = append(passthroughArgs, a)
-		}
+func main() {
+	parser := kingpin.MustParse(app.Parse(os.Args[1:]))
+	addFlagsToNixArgs()
+
+	switch parser {
+	case dump.FullCommand():
+		_, manifests, err := readManifests()
+		fail("eval", err)
+		parseAndDump(manifests)
+	case apply.FullCommand():
+		config, err := readConfig()
+		fail("eval", err)
+		inFile := buildResources()
+		applyResources(inFile, config)
+	case build.FullCommand():
+		_ = buildResources()
 	}
+}
+
+func parseAndDump(manifests *map[string]interface{}) {
+	var buffer bytes.Buffer
+	byteArr, err := json.Marshal(manifests)
+	fail("parse-manifests", err)
+	json.Indent(&buffer, byteArr, "", "\t")
+	buffer.WriteTo(os.Stdout)
+	fmt.Println()
+}
+
+func buildResources() (inFile *os.File) {
+	build, err := nix.Build("build", nixArgs)
+	fail("build", err)
+	fmt.Println(build) // print outpath to stdout
+	inFile, err = os.Open(filepath.Join(build, "kubernixos.json"))
+	fail("validate", err)
 	return
 }
 
-func parseArg(arg string) bool {
-	switch arg {
-	case "build":
-		doBuild = true
-		return true
-	case "apply":
-		doApply = true
-		return true
-	case "prune":
-		doPrune = true
-		return true
-	case "dump":
-		doDump = true
-		return true
-	case "--show-trace":
-		nixArgs = append(nixArgs, arg)
-		return true
-	case "--prune":
-		fmt.Fprintf(os.Stderr, "Usage of `kubectl apply --prune` is disabled in kubernixos\n")
-		os.Exit(1)
-	}
+func applyResources(inFile *os.File, config *nix.Config) {
+	err := applyKubernixos(inFile, config, nixArgs)
+	fail("apply", err)
 
-	return false
+	restConfig, err := kubeclient.GetKubeConfig(config.Server)
+	fail("kube-config", err)
+
+	clients, err := kubeclient.GetKubeClient(restConfig)
+	fail("kube-client", err)
+
+	var types []kubeclient.ResourceType
+	types, err = kubeclient.GetResourceTypes(clients)
+	fail("resource-types", err)
+
+	objects, err := kubeclient.GetResourcesToPrune(restConfig, config, types)
+	fail("all-resources", err)
+
+	pruneCluster(objects, restConfig)
 }
 
-func apply(inFile *os.File, config *nix.Config, args []string) error {
-	if !doApply {
-		return nil
-	}
+func applyKubernixos(inFile *os.File, config *nix.Config, args []string) error {
 	return kubectl.Apply(inFile, config.Server, args)
 }
 
@@ -184,8 +184,7 @@ func configFromData(data *map[string]interface{}) *nix.Config {
 	}
 }
 
-
-func prune(objects map[string]kubeclient.Object, restConfig *rest.Config) {
+func pruneCluster(objects map[string]kubeclient.Object, restConfig *rest.Config) {
 	for _, o := range objects {
 		fmt.Print("Pruning: ")
 		fmt.Print(o.Metadata.SelfLink)

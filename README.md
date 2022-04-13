@@ -60,15 +60,8 @@ This will mutate nothing.
 `kubernixos apply`: Like kubectl apply. This will apply kubernixos state to the cluster.
 Unwanted objects will not be pruned, unless "prune" is added to the command explicitly.
 
-`kubernixos prune`: This will prune unwanted objects from the cluster,
+`kubernixos apply --prune`: This will prune unwanted objects from the cluster,
 which are not part of the kubernixos nix closure.
-
-If `--show-trace` is passed to the kubernixos, this flag will be passed on to `nix eval`.
-
-If anything else is passed to kubernixos, these args will be forwarded to `kubectl apply`.
-This can be used to get more verbose kubectl output or perform a dry-run, e.g.: `kubernixos apply --dry-run=true -v=6`.
-
-Consecutive keywords can be passed to kubernixos, like `kubernixos dump apply prune`. 
 
 ## The module
 
