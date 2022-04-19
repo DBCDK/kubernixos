@@ -21,7 +21,6 @@ var (
 	dump      = parseDump(app.Command("dump", "Dump all kubernetes resources in manifest to stdout."))
 	apply     = parseApply(app.Command("apply", "Builds the manifest, applies resources to the cluster, then prunes old dpeloyments"))
 	build     = parseBuild(app.Command("build", "Returns a store-path with the kubernetes resources from the manifest."))
-	test      = parseBuild(app.Command("test", "test."))
 	manifest  string
 	doPrune   bool
 	showTrace bool
