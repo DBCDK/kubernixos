@@ -1,4 +1,5 @@
-{ pkgs ? (import <nixpkgs> {})
+{ nixpkgs ? import ./nixpkgs.nix
+, pkgs ? import nixpkgs {}
 , version ? "dev"
 }:
 
