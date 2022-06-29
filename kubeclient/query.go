@@ -100,8 +100,8 @@ func GetResourceTypes(clients *kubernetes.Clientset) (resources []ResourceType, 
 }
 
 func getApiResources(clients *kubernetes.Clientset) (resourceList []*v1.APIResourceList, err error) {
-	resourceList, err = clients.Discovery().ServerResources()
-	return
+	resourceList, err = clients.Discovery().ServerPreferredResources()
+  return
 }
 
 func hasVerbs(needles []string, haystack []string) bool {
