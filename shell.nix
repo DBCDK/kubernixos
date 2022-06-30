@@ -1,5 +1,7 @@
-{ pkgs ? (import <nixpkgs> {}) }:
-# TODO: PIN pkgs
+{ nixpkgs ? import ./nixpkgs.nix
+, pkgs ? import nixpkgs {}
+}:
+
 let
   kubernixos = import ./default.nix { inherit pkgs; };
 in

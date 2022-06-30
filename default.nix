@@ -1,4 +1,5 @@
-{ pkgs ? (import <nixpkgs> {})
+{ nixpkgs ? import ./nixpkgs.nix
+, pkgs ? import nixpkgs {}
 , version ? "dev"
 }:
 
@@ -10,7 +11,7 @@ pkgs.buildGoModule rec {
     ldflags+=" -X github.com/dbcdk/kubernixos/nix.root=$out/lib"
   ''; 
 
-  vendorSha256 = "sha256-d8PZ3RDd4c3kXxd9dwFX0ceHiDBtOYCNb19wY4yiUDg=";
+  vendorSha256 = "sha256-jHvWltOkBpgeBBHS1clMQLsYvPi8Wy6KpW+lmFJK6F4=";
 
   postInstall = ''
     cp -rv $src/lib $out
