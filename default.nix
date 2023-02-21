@@ -11,7 +11,7 @@ pkgs.buildGoModule rec {
     ldflags+=" -X github.com/dbcdk/kubernixos/nix.root=$out/lib"
   ''; 
 
-  vendorSha256 = "sha256-jHvWltOkBpgeBBHS1clMQLsYvPi8Wy6KpW+lmFJK6F4=";
+  vendorSha256 = "sha256-HWDum4/zekQfbKStjG8CvK90obUqXcSoIH/6EtS9TKs=";
 
   postInstall = ''
     cp -rv $src/lib $out
