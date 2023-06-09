@@ -18,6 +18,7 @@ import (
 
 var (
 	doBuild = false
+    doTest = false
 	doApply = false
 	doPrune = false
 	doDump  = false
@@ -32,12 +33,20 @@ func main() {
 	var err error
 	var inFile *os.File
 
+    if doTest {
+
+
+
+
+    }
+
 	if doDump {
 		config, manifests, err = readManifests()
 		fail("eval", err)
 	} else {
 		config, err = readConfig()
 	}
+
 
 	if doDump {
 		byteArr, err := json.Marshal(manifests)
@@ -101,6 +110,9 @@ func parseCmdline(args []string) (passthroughArgs []string) {
 
 func parseArg(arg string) bool {
 	switch arg {
+    case "test":
+        doTest = true 
+        return true
 	case "build":
 		doBuild = true
 		return true
