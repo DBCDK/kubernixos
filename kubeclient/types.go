@@ -18,7 +18,9 @@ type Object struct {
 }
 
 type Metadata struct {
-	Labels   map[string]string `json:"labels"`
-	SelfLink string            `json:"selfLink"`
-	UID      string            `json:"uid"`
+	Labels        map[string]string `json:"labels"`
+	SelfLink      string            
+	UID           string            `json:"uid"`
+	Name          string            `json:"name"`
+	Namespace     string            `json:"namespace"`
 }

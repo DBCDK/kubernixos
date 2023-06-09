@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"strings"
+	"fmt"
 )
 
 const labelName = "kubernixos"
@@ -50,6 +51,7 @@ func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []Re
 		if len(target.Items) > 0 {
 			for _, i := range target.Items {
 				if config.Checksum != i.Metadata.Labels["kubernixos"] {
+					i.Metadata.SelfLink = getSelfLink(t, i)
 					resources[i.Metadata.UID] = i
 				}
 			}
@@ -57,6 +59,30 @@ func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []Re
 	}
 
 	return resources, nil
+}
+// Selflink is deprecated, so construct path here: 
+func getSelfLink(t ResourceType, obj Object) (selflink string) {
+	switch (t.Namespaced) {
+	case true:
+		// Note on resource URI's that we account for here and below: 
+		// core resources use the /api path and omit the group path segment.
+		if t.APIGroup != "" {
+			selflink = fmt.Sprintf("%s/%s/%s/namespaces/%s/%s/%s", 
+			t.APIPath, t.APIGroup, t.APIVersion, obj.Metadata.Namespace, t.Name, obj.Metadata.Name)
+		} else {
+			selflink = fmt.Sprintf("%s/%s/namespaces/%s/%s/%s", 
+			t.APIPath, t.APIVersion, obj.Metadata.Namespace, t.Name, obj.Metadata.Name)
+		}
+	case false:
+		if t.APIGroup != "" {
+			selflink = fmt.Sprintf("%s/%s/%s/%s/%s", 
+			t.APIPath, t.APIGroup, t.APIVersion, t.Name, obj.Metadata.Name)
+		} else {
+			selflink = fmt.Sprintf("%s/%s/%s/%s", 
+			t.APIPath, t.APIVersion, t.Name, obj.Metadata.Name)
+		}
+	}
+	return 
 }
 
 func GetResourceTypes(clients *kubernetes.Clientset) (resources []ResourceType, err error) {
