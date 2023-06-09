@@ -34,8 +34,30 @@ func main() {
 	var inFile *os.File
 
     if doTest {
+		config, err := readConfig()
+		build, err := nix.Build("build", nixArgs)
+		fail("build", err)
+		fmt.Println(build) // print outpath to stdout
+		inFile, err = os.Open(filepath.Join(build, "kubernixos.json"))
+		fail("validate", err)
 
+		err = apply(inFile, config, passthroughArgs)
+		fail("apply", err)
 
+		restConfig, err := kubeclient.GetKubeConfig(config.Server)
+		fail("kube-config", err)
+
+		clients, err := kubeclient.GetKubeClient(restConfig)
+		fail("kube-client", err)
+
+		var types []kubeclient.ResourceType
+		types, err = kubeclient.GetResourceTypes(clients)
+		fail("resource-types", err)
+
+        kubeclient.TestSelfLink(restConfig, config, types)
+		fail("all-resources", err)
+
+        return
 
 
     }

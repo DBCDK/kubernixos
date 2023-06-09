@@ -15,6 +15,66 @@ import (
 
 const labelName = "kubernixos"
 
+
+var negTotal, posTotal int
+
+func TestSelfLink(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
+	resources := make(map[string]Object, 0)
+	for _, t := range types {
+		var neg, pos int
+		restConfig.APIPath = t.APIPath
+		restConfig.GroupVersion = &schema.GroupVersion{
+			Group:   t.APIGroup,
+			Version: t.APIVersion,
+		}
+
+		client, err := rest.RESTClientFor(restConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		req := client.Get().
+			Resource(t.Name).
+			Param("labelSelector", labelName)
+
+		ctx := context.Background()
+		raw, err := req.DoRaw(ctx)
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return nil, err
+			}
+			continue
+		}
+
+		var target ObjectList
+		err = json.Unmarshal(raw, &target)
+		if err != nil {
+			return nil, err
+		}
+		if len(target.Items) > 0 {
+			for _, i := range target.Items {
+				if config.Checksum != i.Metadata.Labels["kubernixos"] {
+					selflink := getSelfLink(t,i)
+					if i.Metadata.SelfLink != selflink {
+						fmt.Printf("%s != %s\n", i.Metadata.SelfLink, selflink)
+						neg += 1
+						negTotal += 1
+					} else {
+						pos += 1
+						posTotal += 1
+					}
+					
+					resources[i.Metadata.UID] = i
+				}
+			}
+		}
+		fmt.Printf("test done: %d/%d identical selflinks for apigroup: %s\n", pos, (neg+pos), t.Name)
+	}
+
+	fmt.Printf("Result: %d/%d identical selflinks.\n", posTotal, (negTotal+posTotal))
+	return resources, nil
+}
+
 func GetResourcesToPrune(restConfig *rest.Config, config *nix.Config, types []ResourceType) (map[string]Object, error) {
 	resources := make(map[string]Object, 0)
 	for _, t := range types {
