@@ -1,15 +1,14 @@
-{ nixpkgs ? import ./nixpkgs.nix
-, pkgs ? import nixpkgs {}
-, version ? "dev"
-}:
+{ nixpkgs ? import ./nixpkgs.nix, pkgs ? import nixpkgs { }, version }:
 
 pkgs.buildGoModule rec {
-  name = "kubernixos";
-  src = pkgs.nix-gitignore.gitignoreSource [] ./.;
+  name = "kubernixos-${version}";
+  inherit version;
+
+  src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
 
   preBuild = ''
     ldflags+=" -X github.com/dbcdk/kubernixos/nix.root=$out/lib"
-  ''; 
+  '';
 
   vendorHash = "sha256-yaVpYhAfddW0INS+2lpjE5lYwo5K82qv74bM9WYAsGs=";
 
