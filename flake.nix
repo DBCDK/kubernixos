@@ -49,36 +49,17 @@
           };
         };
 
-        # Acessible through 'nix develop' or 'nix-shell' (legacy)
-        devShells.default = pkgs.mkShell {
+        # Accessible through 'nix develop' or 'nix-shell' (legacy)
+        devShells.default = import ./shell.nix {
+          inherit nixpkgs pkgs;
+          kubernixos = self.packages.${system}.default;
           inherit (self.checks.${system}.pre-commit-check) shellHook;
-          inputsFrom = [ self.packages.${system}.default ];
         };
 
         packages = rec {
           default = kubernixos;
-          kubernixos = pkgs.buildGoModule rec {
-            name = "kubernixos-${version}";
-            inherit version;
-
-            src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
-
-            preBuild = ''
-              ldflags+=" -X github.com/dbcdk/kubernixos/nix.root=$out/lib"
-            '';
-
-            vendorHash = "sha256-yaVpYhAfddW0INS+2lpjE5lYwo5K82qv74bM9WYAsGs=";
-
-            postInstall = ''
-              cp -rv $src/lib $out
-            '';
-
-            meta = {
-              homepage = "https://github.com/dbcdk/kubernixos";
-              description =
-                "Kubernixos is a k8s object reconciler written in Golang.";
-            };
-          };
+          kubernixos =
+            pkgs.callPackage ./default.nix { inherit pkgs nixpkgs version; };
         };
       });
 }

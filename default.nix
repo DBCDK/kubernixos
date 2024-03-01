@@ -1,7 +1,9 @@
-{ nixpkgs ? import ./nixpkgs.nix, pkgs ? import nixpkgs { } }:
+{ nixpkgs ? import ./nixpkgs.nix, pkgs ? import nixpkgs { }, version }:
 
 pkgs.buildGoModule rec {
-  name = "kubernixos";
+  name = "kubernixos-${version}";
+  inherit version;
+
   src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
 
   preBuild = ''
