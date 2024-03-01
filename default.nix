@@ -1,4 +1,4 @@
-{ nixpkgs ? import ./nixpkgs.nix, pkgs ? import nixpkgs { }, version ? "dev" }:
+{ nixpkgs ? import ./nixpkgs.nix, pkgs ? import nixpkgs { } }:
 
 pkgs.buildGoModule rec {
   name = "kubernixos";
