@@ -75,7 +75,8 @@
 
             meta = {
               homepage = "https://github.com/dbcdk/kubernixos";
-              description = "Kubernixos is a k8s object reconciler written in Golang.";
+              description =
+                "Kubernixos is a k8s object reconciler written in Golang.";
             };
           };
         };
