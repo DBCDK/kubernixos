@@ -10,7 +10,7 @@ pkgs.buildGoModule rec {
     ldflags+=" -X github.com/dbcdk/kubernixos/nix.root=$out/lib"
   '';
 
-  vendorHash = "sha256-yaVpYhAfddW0INS+2lpjE5lYwo5K82qv74bM9WYAsGs=";
+  vendorHash = "sha256-Vrxn6wOKryOd2Wsh6YlIMB6Ke+HExn3TAVU1UuZOdA0=";
 
   postInstall = ''
     cp -rv $src/lib $out
