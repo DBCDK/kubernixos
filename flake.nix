@@ -61,5 +61,9 @@
           kubernixos =
             pkgs.callPackage ./default.nix { inherit pkgs nixpkgs version; };
         };
-      });
+      }) // {
+        nixosModules = {
+          kubernixos = { imports = [ ./lib/kubernixos.nix ]; };
+        };
+      };
 }
