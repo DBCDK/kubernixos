@@ -1,21 +1,35 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.kubernixos;
 
   # Kubernetes label can only have a max length of 63 chars, which explains the substring below
   # see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
-  kubernixos = with builtins;
-    substring 0 62 (hashString "sha256" (toJSON cfg.manifests));
+  kubernixos = with builtins; substring 0 62 (hashString "sha256" (toJSON cfg.manifests));
 
-  merge = _name: item:
+  merge =
+    _name: item:
     lib.recursiveUpdate item {
-      metadata = { labels = { inherit kubernixos; }; };
+      metadata = {
+        labels = { inherit kubernixos; };
+      };
     };
 
   eval = {
-    config = (removeAttrs cfg [ "build" "eval" "manifests" "schemas" ]) // {
-      checksum = kubernixos;
-    };
+    config =
+      (removeAttrs cfg [
+        "build"
+        "eval"
+        "manifests"
+        "schemas"
+      ])
+      // {
+        checksum = kubernixos;
+      };
 
     manifests = {
       apiVersion = "v1";
@@ -24,31 +38,35 @@ let
     };
   };
 
-  build = pkgs.runCommandLocal "kubernixos-${kubernixos}" {
-    nativeBuiltInputs = [ pkgs.kubeval cfg.schemas ];
-  } ''
-    mkdir -p $out
-    ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: i:
-      "ln -s ${
-        pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)
-      } $out/${n}.json") cfg.manifests)}
-    ln -s ${
-      pkgs.writeText "kubernixos-${kubernixos}.json"
-      (builtins.toJSON eval.manifests)
-    } $out/kubernixos.json
-    cd $out
-    ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
-        --output tab \
-        --schema-location=file://${cfg.schemas} \
-        ${
-          lib.concatMapStringsSep " " (kind: "--skip-kinds ${kind}")
-          cfg.skipSchemas
-        } \
-        kubernixos.json
-  '';
-in {
-  options.kubernixos = with lib;
-    with lib.types; {
+  build =
+    pkgs.runCommandLocal "kubernixos-${kubernixos}"
+      {
+        nativeBuiltInputs = [
+          pkgs.kubeval
+          cfg.schemas
+        ];
+      }
+      ''
+        mkdir -p $out
+        ${lib.concatStringsSep "\n" (
+          lib.mapAttrsToList (
+            n: i: "ln -s ${pkgs.writeText "kubernixos-${n}.json" (builtins.toJSON i)} $out/${n}.json"
+          ) cfg.manifests
+        )}
+        ln -s ${pkgs.writeText "kubernixos-${kubernixos}.json" (builtins.toJSON eval.manifests)} $out/kubernixos.json
+        cd $out
+        ${pkgs.kubeval}/bin/kubeval --strict -v ${cfg.version} \
+            --output tab \
+            --schema-location=file://${cfg.schemas} \
+            ${lib.concatMapStringsSep " " (kind: "--skip-kinds ${kind}") cfg.skipSchemas} \
+            kubernixos.json
+      '';
+in
+{
+  options.kubernixos =
+    with lib;
+    with lib.types;
+    {
 
       manifests = mkOption {
         type = attrsOf attrs;
@@ -63,8 +81,7 @@ in {
 
       version = mkOption {
         type = str;
-        description =
-          "Kubernetes version to apply manifest validation against.";
+        description = "Kubernetes version to apply manifest validation against.";
       };
 
       server = mkOption {

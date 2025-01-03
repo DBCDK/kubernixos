@@ -10,9 +10,18 @@
   };
   settings = {
     formatter = {
-      nixfmt.includes = [ "*.nix" "./data/*" ];
-      statix.includes = [ "*.nix" "./data/*" ];
-      deadnix.includes = [ "*.nix" "./data/*" ];
+      nixfmt.includes = [
+        "*.nix"
+        "./data/*"
+      ];
+      statix.includes = [
+        "*.nix"
+        "./data/*"
+      ];
+      deadnix.includes = [
+        "*.nix"
+        "./data/*"
+      ];
     };
   };
 }

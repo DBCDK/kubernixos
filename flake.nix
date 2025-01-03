@@ -4,7 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
 
-    flake-utils = { url = "github:numtide/flake-utils"; };
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+    };
 
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
@@ -18,8 +20,16 @@
     };
   };
 
-  outputs = { self, pre-commit-hooks, nixpkgs, flake-utils, treefmt-nix }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      pre-commit-hooks,
+      nixpkgs,
+      flake-utils,
+      treefmt-nix,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         version = "dev";
 
@@ -27,7 +37,8 @@
 
         # Eval the treefmt modules from ./treefmt.nix
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
-      in {
+      in
+      {
         # for `nix fmt`
         formatter = treefmtEval.config.build.wrapper;
 
@@ -35,18 +46,20 @@
         checks = {
           formatting = treefmtEval.config.build.check self;
           build = self.packages.${system}.default;
-          pre-commit-check = let
-            # some treefmt formatters are not supported in pre-commit-hooks we
-            # filter them out for now.
-            toFilter = [ "yamlfmt" ];
-            filterFn = n: _v: (!builtins.elem n toFilter);
-            treefmtFormatters =
-              pkgs.lib.mapAttrs (_n: v: { inherit (v) enable; })
-              (pkgs.lib.filterAttrs filterFn (import ./treefmt.nix).programs);
-          in pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = treefmtFormatters;
-          };
+          pre-commit-check =
+            let
+              # some treefmt formatters are not supported in pre-commit-hooks we
+              # filter them out for now.
+              toFilter = [ "yamlfmt" ];
+              filterFn = n: _v: (!builtins.elem n toFilter);
+              treefmtFormatters = pkgs.lib.mapAttrs (_n: v: { inherit (v) enable; }) (
+                pkgs.lib.filterAttrs filterFn (import ./treefmt.nix).programs
+              );
+            in
+            pre-commit-hooks.lib.${system}.run {
+              src = ./.;
+              hooks = treefmtFormatters;
+            };
         };
 
         # Accessible through 'nix develop' or 'nix-shell' (legacy)
@@ -58,12 +71,15 @@
 
         packages = rec {
           default = kubernixos;
-          kubernixos =
-            pkgs.callPackage ./default.nix { inherit pkgs nixpkgs version; };
+          kubernixos = pkgs.callPackage ./default.nix { inherit pkgs nixpkgs version; };
         };
-      }) // {
-        nixosModules = {
-          kubernixos = { imports = [ ./lib/kubernixos.nix ]; };
+      }
+    )
+    // {
+      nixosModules = {
+        kubernixos = {
+          imports = [ ./lib/kubernixos.nix ];
         };
       };
+    };
 }
