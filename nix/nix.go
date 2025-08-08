@@ -43,6 +43,29 @@ func Eval(attribute string, args []string) (buffer *bytes.Buffer, err error) {
 	return
 }
 
+func FlakeEval(attribute string) (buffer *bytes.Buffer, err error) {
+	kubernixosAttr := os.Getenv("KUBERNIXOS_ATTR")
+	if kubernixosAttr == "" {
+		return nil, errors.New("KUBERNIXOS_ATTR must be set in environment")
+	}
+
+	// TODO: build the entire config instead of eval'ing, to get eval cache
+
+	nixArgs := make([]string, 0)
+	nixArgs = append(nixArgs, "eval")
+	nixArgs = append(nixArgs, "--json")
+	nixArgs = append(nixArgs, kubernixosAttr + "." + attribute)
+
+	cmd := exec.Command("nix", nixArgs...)
+
+	buffer = &bytes.Buffer{}
+	cmd.Stdout = buffer
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	return
+}
+
 func Build(attribute string, args []string) (path string, err error) {
 	kubernixosNix := filepath.Join(root, "eval.nix")
 
@@ -62,6 +85,28 @@ func Build(attribute string, args []string) (path string, err error) {
 	nixArgs = append(nixArgs, []string{"-o", "result-kubernixos"}...)
 	nixArgs = append(nixArgs, []string{"-f", kubernixosNix}...)
 	nixArgs = append(nixArgs, []string{attribute}...)
+	cmd := exec.Command("nix", nixArgs...)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	return os.Readlink("result-kubernixos")
+}
+
+func FlakeBuild(attribute string) (path string, err error) {
+	kubernixosAttr := os.Getenv("KUBERNIXOS_ATTR")
+	if kubernixosAttr == "" {
+		return "", errors.New("KUBERNIXOS_ATTR must be set in environment")
+	}
+
+	nixArgs := make([]string, 0)
+	nixArgs = append(nixArgs, "build")
+	nixArgs = append(nixArgs, []string{"-o", "result-kubernixos"}...)
+	nixArgs = append(nixArgs, kubernixosAttr + "." + attribute)
 	cmd := exec.Command("nix", nixArgs...)
 
 	cmd.Stdout = os.Stdout

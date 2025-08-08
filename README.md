@@ -145,3 +145,12 @@ pkgs.stdenv.mkDerivation {
 
 The above example wraps the kubernixos script such that it's first arg becomes
 a path to a network-file (similar to hostgroup files used by Morph or NixOps).
+
+
+## flakes
+
+There's also a --flake flag in the presence of which kubernixos will expect
+`KUBERNIXOS_ATTR` containing a string reference to an _evaluated_ kubernixos
+configuration, eg `myflakeref#myAttr.config.kubernixos`.
+
+This allows you to forgo any of the assumptions made by `lib/eval.nix`

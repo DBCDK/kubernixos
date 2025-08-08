@@ -21,6 +21,7 @@ var (
 	doApply = false
 	doPrune = false
 	doDump  = false
+	flake  = false
 	nixArgs = make([]string, 0)
 )
 
@@ -54,7 +55,7 @@ func main() {
 	}
 
 	if doBuild || doApply || doPrune {
-		build, err := nix.Build("build", nixArgs)
+		build, err := build("build")
 		fail("build", err)
 		fmt.Println(build) // print outpath to stdout
 		inFile, err = os.Open(filepath.Join(build, "kubernixos.json"))
@@ -116,6 +117,9 @@ func parseArg(arg string) bool {
 	case "--show-trace":
 		nixArgs = append(nixArgs, arg)
 		return true
+	case "--flake":
+		flake = true
+		return true
 	case "--prune":
 		fmt.Fprintf(os.Stderr, "Usage of `kubectl apply --prune` is disabled in kubernixos\n")
 		os.Exit(1)
@@ -133,7 +137,7 @@ func apply(inFile *os.File, config *nix.Config, args []string) error {
 
 func read(attr string) (data map[string]map[string]interface{}, err error) {
 	var raw *bytes.Buffer
-	raw, err = nix.Eval(attr, nixArgs)
+	raw, err = eval(attr)
 	if err != nil {
 		return
 	}
@@ -147,7 +151,7 @@ func read(attr string) (data map[string]map[string]interface{}, err error) {
 
 func subread(attr string) (data map[string]interface{}, err error) {
 	var raw *bytes.Buffer
-	raw, err = nix.Eval(attr, nixArgs)
+	raw, err = eval(attr)
 	if err != nil {
 		return
 	}
@@ -230,5 +234,21 @@ func askForConfirmation() bool {
 	} else {
 		fmt.Print("Please type yes or no and then press enter: ")
 		return askForConfirmation()
+	}
+}
+
+func eval(attribute string) (*bytes.Buffer, error) {
+	if flake {
+		return nix.FlakeEval(attribute)
+	} else {
+		return nix.Eval(attribute, nixArgs)
+	}
+}
+
+func build(attribute string) (string, error) {
+	if flake {
+		return nix.FlakeBuild(attribute)
+	} else {
+		return nix.Build(attribute, nixArgs)
 	}
 }
